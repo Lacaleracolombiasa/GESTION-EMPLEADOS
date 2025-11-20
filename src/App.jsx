@@ -1560,9 +1560,20 @@ export default function App() {
         const token = new URLSearchParams(window.location.search).get('token');
         if (token) {
             setView('invitation');
-        } else {
-            fetchData();
+            return;
         }
+
+        fetchData(); // Carga inicial
+
+        // Vuelve a cargar los datos cada 15 segundos para mantener la UI actualizada.
+        const intervalId = setInterval(() => {
+            fetchData();
+        }, 15000);
+
+        // Limpia el intervalo cuando el componente se desmonta.
+        return () => {
+            clearInterval(intervalId);
+        };
     }, []);
 
     async function fetchData() {
@@ -1611,17 +1622,27 @@ export default function App() {
             return false;
         }
 
-        // Verificar la contraseña (en un caso real, esto debería ser manejado por Supabase Auth de forma segura)
-        if (data.password_hash !== password) {
-            return false;
-        }
-
-        // Si todo es correcto, proceder al dashboard
-        setCurrentUser(data); 
-        setView('app'); 
-        setActiveView('dashboard');
-        return true;
-    };
+            // Verificar la contraseña (en un caso real, esto debería ser manejado por Supabase Auth de forma segura)
+            if (data.password_hash !== password) {
+                return false;
+            }
+        
+            // Si todo es correcto, proceder al dashboard
+            
+            // Actualizar manualmente el estado de los usuarios con los datos nuevos del login
+            setUsers(prevUsers => {
+                const userExists = prevUsers.some(u => u.id === data.id);
+                if (userExists) {
+                    return prevUsers.map(u => u.id === data.id ? data : u);
+                } else {
+                    return [...prevUsers, data];
+                }
+            });
+        
+            setCurrentUser(data); 
+            setView('app'); 
+            setActiveView('dashboard');
+            return true;    };
     const handleLogout = () => { setCurrentUser(null); setView('login'); };
     const handleInviteUser = async (newUserInfo, onCloseCallback) => {
         const token = `${newUserInfo.cedula}-${Date.now()}`.slice(0, 255); // Crear un token único y seguro
@@ -1980,12 +2001,10 @@ export default function App() {
                     token={token} 
                     onComplete={(updatedUser) => {
                         setUsers(users.map(u => u.id === updatedUser.id ? updatedUser : u));
-                        window.history.pushState({}, '', window.location.pathname); // Limpiar token de la URL
-                        setView('login');
                     }}
                     onGoToLogin={() => {
-                        window.history.pushState({}, '', window.location.pathname); // Limpiar token de la URL
-                        setView('login');
+                        const newUrl = window.location.origin + window.location.pathname;
+                        window.location.href = newUrl;
                     }}
                 />;
     }
