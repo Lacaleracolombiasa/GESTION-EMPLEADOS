@@ -97,6 +97,8 @@ const LoginPage = ({ onLogin }) => {
 // Incluye la barra lateral de navegación y la cabecera.
 const AppLayout = ({ currentUser, onLogout, children, activeView, setActiveView, notifications, onShowChangePasswordModal, onShowMyProfileModal }) => {
     const [showNotifications, setShowNotifications] = useState(false);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Estado para la barra lateral móvil
+
     // Define los ítems de navegación base.
     const navItems = [
         { name: 'Dashboard', icon: <HomeIcon />, view: 'dashboard' },
@@ -119,30 +121,45 @@ const AppLayout = ({ currentUser, onLogout, children, activeView, setActiveView,
 
     // Maneja el cierre de sesión.
     const handleLogoutClick = async () => { onLogout(); }
+    const handleNavItemClick = (view) => {
+        setActiveView(view);
+        setIsSidebarOpen(false); // Cierra la barra lateral al seleccionar un ítem
+    };
 
     return (
         <div className="flex h-screen bg-slate-900 text-gray-200">
+            {/* Overlay para cerrar la barra lateral en móvil */}
+            {isSidebarOpen && <div className="fixed inset-0 bg-black bg-opacity-50 z-20 md:hidden" onClick={() => setIsSidebarOpen(false)}></div>}
+
             {/* Barra Lateral */}
-            <aside className="w-64 bg-slate-800 p-4 flex flex-col justify-between">
+            <aside className={`fixed top-0 left-0 h-full w-64 bg-slate-800 p-4 flex flex-col justify-between z-30 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform md:relative md:translate-x-0 md:flex`}>
                 <div>
                     <div className="mb-8 text-center"><img src="https://lacaleracolombia.com.co/wp-content/uploads/2023/03/cropped-Logo-La-Calera-Estuardo-PNG.png" alt="Logo La Calera" className="w-32 mx-auto bg-white rounded-lg p-1" /><p className="text-sm text-gray-400">{currentUser.cargo}</p></div>
-                    <nav className="space-y-2">{navItems.map(item => (<button key={item.name} onClick={() => setActiveView(item.view)} className={`w-full flex items-center space-x-3 px-4 py-2 rounded-lg transition-colors ${activeView === item.view ? 'bg-emerald-500 text-white' : 'hover:bg-slate-700'}`}>{item.icon}<span>{item.name}</span></button>))}</nav>
+                    <nav className="space-y-2">{navItems.map(item => (<button key={item.name} onClick={() => handleNavItemClick(item.view)} className={`w-full flex items-center space-x-3 px-4 py-2 rounded-lg transition-colors ${activeView === item.view ? 'bg-emerald-500 text-white' : 'hover:bg-slate-700'}`}>{item.icon}<span>{item.name}</span></button>))}</nav>
                 </div>
                 <div><button onClick={handleLogoutClick} className="w-full flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-slate-700 transition-colors"><LogOutIcon /><span>Cerrar Sesión</span></button></div>
             </aside>
             {/* Contenido Principal */}
-            <main className="flex-1 p-8 overflow-y-auto">
+            <main className="flex-1 p-4 md:p-8 overflow-y-auto">
                  {/* Cabecera */}
                  <header className="flex justify-between items-center mb-8">
-                    <div><h2 className="text-3xl font-bold text-white">Bienvenido, {currentUser.nombre_completo?.split(' ')[0]}</h2><p className="text-gray-400">Hoy es {new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}.</p></div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center">
+                        <button className="md:hidden p-2 mr-2" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                        </button>
+                        <div className="flex flex-col">
+                            <h2 className="text-xl md:text-3xl font-bold text-white">Bienvenido, {currentUser.nombre_completo?.split(' ')[0]}</h2>
+                            <p className="text-xs md:text-base text-gray-400">Hoy es {new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}.</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center space-x-1 md:space-x-2">
                          <button onClick={onShowMyProfileModal} title="Mi Perfil" className="p-2 rounded-full hover:bg-slate-700"><UserIcon /></button>
                          <button onClick={onShowChangePasswordModal} title="Cambiar Contraseña" className="p-2 rounded-full hover:bg-slate-700"><KeyIcon /></button>
                         <div className="relative">
                             <button onClick={() => setShowNotifications(!showNotifications)} className="relative p-2 rounded-full hover:bg-slate-700"><BellIcon />{notifications.length > 0 && <span className="absolute top-0 right-0 h-2 w-2 bg-orange-500 rounded-full"></span>}</button>
                             {showNotifications && <NotificationsPanel notifications={notifications} onClose={() => setShowNotifications(false)} />}
                         </div>
-                        <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center font-bold text-white">{currentUser.nombre_completo?.charAt(0)}</div>
+                        <div className="hidden md:flex w-10 h-10 bg-emerald-500 rounded-full items-center justify-center font-bold text-white">{currentUser.nombre_completo?.charAt(0)}</div>
                     </div>
                 </header>
                 {/* Renderiza el contenido de la vista activa */}
@@ -657,23 +674,25 @@ const CalendarView = ({ currentUser, solicitudes, users, blockedDates }) => {
                 <div className="flex items-center"><span className="h-3 w-3 rounded-full bg-gray-600 mr-2"></span>Bloqueadas</div>
             </div>
             {/* Grid del Calendario */}
-            <div className="grid grid-cols-7 gap-px text-center text-xs bg-slate-700 border border-slate-700">
-                {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map(day => <div key={day} className="font-bold text-gray-400 p-2 bg-slate-800">{day}</div>)}
-                {emptyDays.map((_, i) => <div key={`empty-${i}`} className="bg-slate-800 h-28"></div>)}
-                {monthDays.map(day => {
-                    const dayStr = day.toISOString().slice(0, 10);
-                    const dayEvents = calendarEvents.filter(e => e.date.toISOString().slice(0,10) === dayStr);
-                    const blockedInfo = blockedDates.find(b => b.date === dayStr);
-                    const isBlocked = !!blockedInfo;
-                    return (
-                        <div key={dayStr} className={`h-28 bg-slate-800 p-1 flex flex-col items-start overflow-y-auto relative`}>
-                            <span className="font-bold text-white">{day.getDate()}</span>
-                            {isBlocked && <div className="absolute inset-0 bg-slate-900 bg-opacity-70 flex flex-col items-center justify-center z-10 p-1"><LockIcon className="text-red-500"/><p className="text-white text-xs text-center break-words">{blockedInfo.comment}</p></div>}
-                            {/* Renderizar eventos del día */}
-                            {dayEvents.map((event) => (<button key={event.id} onClick={() => setSelectedEvent(event)} className={`w-full text-left text-white text-[10px] p-1 rounded ${event.color} mb-1 truncate`}>{event.title}</button>))}
-                        </div>
-                    );
-                })}
+            <div className="overflow-x-auto">
+                <div className="grid grid-cols-7 gap-px text-center text-xs bg-slate-700 border border-slate-700 min-w-[700px]">
+                    {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map(day => <div key={day} className="font-bold text-gray-400 p-2 bg-slate-800">{day}</div>)}
+                    {emptyDays.map((_, i) => <div key={`empty-${i}`} className="bg-slate-800 h-28"></div>)}
+                    {monthDays.map(day => {
+                        const dayStr = day.toISOString().slice(0, 10);
+                        const dayEvents = calendarEvents.filter(e => e.date.toISOString().slice(0,10) === dayStr);
+                        const blockedInfo = blockedDates.find(b => b.date === dayStr);
+                        const isBlocked = !!blockedInfo;
+                        return (
+                            <div key={dayStr} className={`h-28 bg-slate-800 p-1 flex flex-col items-start overflow-y-auto relative`}>
+                                <span className="font-bold text-white">{day.getDate()}</span>
+                                {isBlocked && <div className="absolute inset-0 bg-slate-900 bg-opacity-70 flex flex-col items-center justify-center z-10 p-1"><LockIcon className="text-red-500"/><p className="text-white text-xs text-center break-words">{blockedInfo.comment}</p></div>}
+                                {/* Renderizar eventos del día */}
+                                {dayEvents.map((event) => (<button key={event.id} onClick={() => setSelectedEvent(event)} className={`w-full text-left text-white text-[10px] p-1 rounded ${event.color} mb-1 truncate`}>{event.title}</button>))}
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
             {/* Modal de Detalles del Evento */}
             {selectedEvent && <EventDetailModal event={selectedEvent} onClose={() => setSelectedEvent(null)} />}
@@ -795,7 +814,7 @@ const UserProfileModal = ({ user, onClose, onUpdateUser, currentUser, onRetireUs
                     <div className="p-4 bg-slate-700 rounded-lg">
                         <h4 className="font-bold text-lg mb-2 text-white">Datos Personales</h4>
                         {isEditing ? (
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div><label className="block text-xs text-gray-400">Nombre Completo</label><input name="nombre_completo" value={formData.nombre_completo} onChange={handleFieldChange} className="w-full input-style"/></div>
                                 <div><label className="block text-xs text-gray-400">Cédula</label><input name="cedula" value={formData.cedula} readOnly={isSelfProfile} className={`w-full input-style ${isSelfProfile ? 'bg-slate-600 cursor-not-allowed' : ''}`}/></div>
                                 <div><label className="block text-xs text-gray-400">Dirección</label><input name="direccion" value={formData.direccion} onChange={handleFieldChange} className="w-full input-style"/></div>
@@ -834,7 +853,7 @@ const UserProfileModal = ({ user, onClose, onUpdateUser, currentUser, onRetireUs
                          <h4 className="font-bold text-lg mb-2 text-white">Contacto de Emergencia</h4>
                          {isEditing ? (
                              (formData.contactos_emergencia.length > 0 ? formData.contactos_emergencia : [{nombre: '', relacion: '', telefono: ''}]).map((c, i) => (
-                                <div key={i} className="grid grid-cols-3 gap-2 mb-2">
+                                <div key={i} className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
                                      <input name="nombre" value={c.nombre} onChange={(e) => handleEmergencyContactChange(i, e)} placeholder="Nombre" className="input-style"/>
                                      <input name="relacion" value={c.relacion} onChange={(e) => handleEmergencyContactChange(i, e)} placeholder="Relación" className="input-style"/>
                                      <input name="telefono" value={c.telefono} onChange={(e) => handleEmergencyContactChange(i, e)} placeholder="Teléfono" className="input-style"/>
@@ -1541,9 +1560,20 @@ export default function App() {
         const token = new URLSearchParams(window.location.search).get('token');
         if (token) {
             setView('invitation');
-        } else {
-            fetchData();
+            return;
         }
+
+        fetchData(); // Carga inicial
+
+        // Vuelve a cargar los datos cada 15 segundos para mantener la UI actualizada.
+        const intervalId = setInterval(() => {
+            fetchData();
+        }, 15000);
+
+        // Limpia el intervalo cuando el componente se desmonta.
+        return () => {
+            clearInterval(intervalId);
+        };
     }, []);
 
     async function fetchData() {
@@ -1592,17 +1622,27 @@ export default function App() {
             return false;
         }
 
-        // Verificar la contraseña (en un caso real, esto debería ser manejado por Supabase Auth de forma segura)
-        if (data.password_hash !== password) {
-            return false;
-        }
-
-        // Si todo es correcto, proceder al dashboard
-        setCurrentUser(data); 
-        setView('app'); 
-        setActiveView('dashboard');
-        return true;
-    };
+            // Verificar la contraseña (en un caso real, esto debería ser manejado por Supabase Auth de forma segura)
+            if (data.password_hash !== password) {
+                return false;
+            }
+        
+            // Si todo es correcto, proceder al dashboard
+            
+            // Actualizar manualmente el estado de los usuarios con los datos nuevos del login
+            setUsers(prevUsers => {
+                const userExists = prevUsers.some(u => u.id === data.id);
+                if (userExists) {
+                    return prevUsers.map(u => u.id === data.id ? data : u);
+                } else {
+                    return [...prevUsers, data];
+                }
+            });
+        
+            setCurrentUser(data); 
+            setView('app'); 
+            setActiveView('dashboard');
+            return true;    };
     const handleLogout = () => { setCurrentUser(null); setView('login'); };
     const handleInviteUser = async (newUserInfo, onCloseCallback) => {
         const token = `${newUserInfo.cedula}-${Date.now()}`.slice(0, 255); // Crear un token único y seguro
@@ -1961,12 +2001,10 @@ export default function App() {
                     token={token} 
                     onComplete={(updatedUser) => {
                         setUsers(users.map(u => u.id === updatedUser.id ? updatedUser : u));
-                        window.history.pushState({}, '', window.location.pathname); // Limpiar token de la URL
-                        setView('login');
                     }}
                     onGoToLogin={() => {
-                        window.history.pushState({}, '', window.location.pathname); // Limpiar token de la URL
-                        setView('login');
+                        const newUrl = window.location.origin + window.location.pathname;
+                        window.location.href = newUrl;
                     }}
                 />;
     }

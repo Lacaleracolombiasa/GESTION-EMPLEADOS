@@ -15,14 +15,15 @@ const InvitationPage = ({ token, onComplete, onGoToLogin }) => {
         contactos_emergencia: [],
         salud_info: '',
     });
-    const [error, setError] = useState('');
+    const [fatalError, setFatalError] = useState('');
+    const [validationError, setValidationError] = useState('');
     const [loading, setLoading] = useState(true);
     const [step, setStep] = useState(1); // 1: Formulario, 2: Éxito
 
     useEffect(() => {
         const verifyToken = async () => {
             if (!token) {
-                setError('Token de invitación no proporcionado.');
+                setFatalError('Token de invitación no proporcionado.');
                 setLoading(false);
                 return;
             }
@@ -34,7 +35,7 @@ const InvitationPage = ({ token, onComplete, onGoToLogin }) => {
                 .single();
 
             if (error || !data) {
-                setError('Este enlace de invitación no es válido o ha expirado.');
+                setFatalError('Este enlace de invitación no es válido o ha expirado.');
                 setUser(null);
             } else {
                 setUser(data);
@@ -60,14 +61,14 @@ const InvitationPage = ({ token, onComplete, onGoToLogin }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError('');
+        setValidationError('');
 
         if (password !== confirmPassword) {
-            setError('Las contraseñas no coinciden.');
+            setValidationError('Las contraseñas no coinciden.');
             return;
         }
         if (password.length < 6) {
-            setError('La contraseña debe tener al menos 6 caracteres.');
+            setValidationError('La contraseña debe tener al menos 6 caracteres.');
             return;
         }
 
@@ -91,7 +92,7 @@ const InvitationPage = ({ token, onComplete, onGoToLogin }) => {
             .single();
 
         if (error) {
-            setError('Hubo un error al actualizar tu perfil. Por favor, inténtalo de nuevo.');
+            setFatalError('Hubo un error al actualizar tu perfil. Por favor, inténtalo de nuevo.');
             console.error("Error updating user:", error);
         } else {
             onComplete(data); // Opcional: para actualizar el estado en App.jsx si es necesario
@@ -103,12 +104,12 @@ const InvitationPage = ({ token, onComplete, onGoToLogin }) => {
         return <div className="bg-slate-900 min-h-screen flex items-center justify-center text-white">Verificando invitación...</div>;
     }
 
-    if (error) {
+    if (fatalError) {
         return (
             <div className="bg-slate-900 min-h-screen flex items-center justify-center text-white text-center p-4">
                 <div>
                     <h2 className="text-2xl font-bold text-red-500 mb-4">Error</h2>
-                    <p>{error}</p>
+                    <p>{fatalError}</p>
                     <button onClick={onGoToLogin} className="mt-6 px-4 py-2 rounded-md font-medium text-white bg-emerald-500 hover:bg-emerald-600">
                         Ir al Inicio de Sesión
                     </button>
@@ -210,7 +211,7 @@ const InvitationPage = ({ token, onComplete, onGoToLogin }) => {
                         />
                     </div>
 
-                    {error && <p className="text-red-400 text-sm text-center">{error}</p>}
+                    {validationError && <p className="text-red-400 text-sm text-center">{validationError}</p>}
 
                     <div>
                         <button type="submit" className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700">
